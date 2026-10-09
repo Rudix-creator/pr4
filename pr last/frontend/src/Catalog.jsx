@@ -5,6 +5,7 @@ import { AuthContext } from "./Authcontext";
 import { CartContext } from "./Cartcontext";
 import ServiceCard from "./ServiceCard";
 
+// каталог
 function Catalog() {
   const { user } = useContext(AuthContext);
   const { addToCart, error: cartError } = useContext(CartContext);
@@ -26,13 +27,15 @@ function Catalog() {
       .finally(() => setLoading(false));
   }, []);
 
+  // добавление в корзину
   const handleAdd = async (service) => {
     if (!user) return navigate("/login");
     if (await addToCart(service.service_id)) setMessage(`«${service.name}» добавлена в корзину`);
   };
 
+  // фильтры
   const filtered = services.filter((s) =>
-    (!category || s.category_name === category) && 
+    (!category || s.category_name === category) &&
     (!maxPrice || s.price <= Number(maxPrice))
   );
 

@@ -12,6 +12,7 @@ import {
 const STATUSES = ["Новый", "В работе", "Готов к выдаче", "Выполнен", "Отменён"];
 const EMPTY_USER = { full_name: "", email: "", password: "", phone: "" };
 
+// вкладка услуг
 function ServicesTab() {
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -35,7 +36,7 @@ function ServicesTab() {
   };
 
   const handleDelete = async (s) => {
-    try { await deleteService(s.service_id); loadData(); } catch (err) { setError(err.message); }
+    try { setError(null); await deleteService(s.service_id); loadData(); } catch (err) { setError(err.message); }
   };
 
   if (loading) return <p>Загрузка...</p>;
@@ -59,6 +60,7 @@ function ServicesTab() {
   );
 }
 
+// вкладка категорий
 function CategoriesTab() {
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState("");
@@ -110,6 +112,7 @@ function CategoriesTab() {
   );
 }
 
+// вкладка заказов
 function OrdersTab() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -153,6 +156,7 @@ function OrdersTab() {
   );
 }
 
+// вкладка пользователей
 function UsersTab() {
   const [users, setUsers] = useState([]);
   const [editing, setEditing] = useState(null);
@@ -250,6 +254,7 @@ function UsersTab() {
   );
 }
 
+// админ-панель
 function Admin() {
   const { user } = useContext(AuthContext);
   const [tab, setTab] = useState("services");

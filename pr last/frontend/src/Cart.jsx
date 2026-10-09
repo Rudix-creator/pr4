@@ -4,6 +4,7 @@ import { AuthContext } from "./Authcontext";
 import { CartContext } from "./Cartcontext";
 import { createOrder } from "./api";
 
+// корзина и оформление заказа
 function Cart() {
   const { user } = useContext(AuthContext);
   const { items, loading, error: cartError, total, changeQuantity, removeFromCart, reloadCart } = useContext(CartContext);
@@ -17,6 +18,7 @@ function Cart() {
 
   if (!user || user.role_name === "admin") return <Navigate to="/login" replace />;
 
+  // оформление заказа
   const handleOrder = async (e) => {
     e.preventDefault();
     if (!address.trim() || !date) return setError("Укажите адрес и дату доставки");
@@ -24,7 +26,7 @@ function Cart() {
     try {
       setSaving(true);
       setError(null);
-      await createOrder({ user_id: user.user_id, delivery_address: address, delivery_date: date });
+      await createOrder({ delivery_address: address, delivery_date: date });
       await reloadCart();
       setDone(true);
     } catch (err) { setError(err.message); }

@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from "react";
 
+// контекст пользователя
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -14,6 +15,7 @@ export function AuthProvider({ children }) {
         else localStorage.removeItem("user");
     }, [user]);
 
+    // вход и выход
     const login = (userData) => setUser(userData);
     const logout = () => setUser(null);
 

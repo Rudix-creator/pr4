@@ -4,6 +4,7 @@ import { getServiceById, getReviews, createReview, updateReview, deleteReview } 
 import { AuthContext } from "./Authcontext";
 import { CartContext } from "./Cartcontext";
 
+// страница услуги и отзывы
 function ServiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -28,13 +29,14 @@ function ServiceDetail() {
 
   useEffect(loadData, [id]);
 
+  // новый отзыв
   const handleReview = async (e) => {
     e.preventDefault();
     if (!comment.trim()) return setError("Напишите комментарий к отзыву");
     try {
       setSaving(true);
       setError(null);
-      await createReview({ user_id: user.user_id, service_id: service.service_id, rating, comment });
+      await createReview({ service_id: service.service_id, rating, comment });
       setComment("");
       setRating(5);
       loadData();
@@ -42,6 +44,7 @@ function ServiceDetail() {
     finally { setSaving(false); }
   };
 
+  // изменение отзыва
   const handleEditReview = async (r) => {
     const newComment = prompt("Новый комментарий:", r.comment);
     if (!newComment || !newComment.trim()) return;
@@ -50,6 +53,7 @@ function ServiceDetail() {
     try { await updateReview(r.review_id, { rating: newRating, comment: newComment }); loadData(); } catch (err) { setError(err.message); }
   };
 
+  // удаление отзыва
   const handleDeleteReview = async (reviewId) => {
     try { await deleteReview(reviewId); loadData(); } catch (err) { setError(err.message); }
   };
@@ -75,7 +79,7 @@ function ServiceDetail() {
         <span className="tag">{service.category_name}</span>
         <h1>{service.name}</h1>
         <p>{service.description}</p>
-        <p>⏱ Длительность: {service.duration_minutes} мин</p>
+        <p>Длительность: {service.duration_minutes} мин</p>
         <h2>{service.price} ₽</h2>
         {!isAdmin && <button className="btn" onClick={handleAdd}>В корзину</button>}
       </div>
@@ -90,7 +94,7 @@ function ServiceDetail() {
             <b>{r.full_name}</b>
             <span>{r.created_date}</span>
           </div>
-          <div className="stars">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</div>
+          <div className="stars">Оценка: {r.rating} из 5</div>
           <p>{r.comment}</p>
           {isAdmin && (
             <div className="row">
@@ -105,7 +109,7 @@ function ServiceDetail() {
         <form className="card form" onSubmit={handleReview} noValidate>
           <h3>Оставить отзыв</h3>
           <select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
-            {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
+            {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>Оценка: {n} из 5</option>)}
           </select>
           <textarea placeholder="Комментарий" value={comment} onChange={(e) => setComment(e.target.value)} />
           <button className="btn" disabled={saving}>{saving ? "Отправка..." : "Отправить"}</button>

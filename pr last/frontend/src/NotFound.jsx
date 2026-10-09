@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+// страница 404
 function NotFound() {
   return (
     <div className="card">

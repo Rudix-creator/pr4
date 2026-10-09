@@ -3,6 +3,7 @@ import { useContext } from "react";
 import { AuthContext } from "./Authcontext";
 import { CartContext } from "./Cartcontext";
 
+// навигация
 function Navbar() {
   const { user, isAuthenticated, logout } = useContext(AuthContext);
   const { itemCount } = useContext(CartContext);

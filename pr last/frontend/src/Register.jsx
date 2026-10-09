@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "./Authcontext";
 import { registerUser } from "./api";
 
+// регистрация
 function Register() {
   const [form, setForm] = useState({ full_name: "", email: "", password: "", phone: "" });
   const [error, setError] = useState(null);

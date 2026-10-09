@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { AuthContext } from "./Authcontext";
 import { getUserOrders, updateUser, changePassword } from "./api";
 
+// личный кабинет
 function Dashboard() {
   const { user, login } = useContext(AuthContext);
   const [orders, setOrders] = useState([]);
@@ -25,6 +26,7 @@ function Dashboard() {
 
   if (!user) return <Navigate to="/login" replace />;
 
+  // сохранение данных
   const saveProfile = async (e) => {
     e.preventDefault();
     if (!profile.full_name.trim() || !profile.email.trim() || !profile.phone.trim())
@@ -37,6 +39,7 @@ function Dashboard() {
     } catch (err) { setProfileMsg({ text: err.message, error: true }); }
   };
 
+  // смена пароля
   const savePassword = async (e) => {
     e.preventDefault();
     if (!passwords.old_password || !passwords.new_password)

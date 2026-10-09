@@ -2,6 +2,7 @@ import { createContext, useState, useEffect, useContext } from "react";
 import { AuthContext } from "./Authcontext";
 import { getCart, addToCart as apiAdd, setCartQuantity, removeFromCart as apiRemove } from "./api";
 
+// контекст корзины
 export const CartContext = createContext();
 
 export function CartProvider({ children }) {
@@ -10,6 +11,7 @@ export function CartProvider({ children }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // загрузка корзины
     const fetchCart = () =>
         getCart(user.user_id).then(setItems).catch((err) => setError(err.message));
 
@@ -20,6 +22,7 @@ export function CartProvider({ children }) {
         fetchCart().finally(() => setLoading(false));
     }, [user]);
 
+    // действие с корзиной
     const run = async (action) => {
         try {
             setError(null);
@@ -37,6 +40,7 @@ export function CartProvider({ children }) {
     const removeFromCart = (serviceId) => run(() => apiRemove(user.user_id, serviceId));
     const reloadCart = () => fetchCart();
 
+    // количество и сумма
     const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
     const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 

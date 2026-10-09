@@ -12,6 +12,7 @@ import Dashboard from './Dashboard'
 import Admin from './Admin'
 import NotFound from './NotFound'
 
+// маршруты
 function App() {
   return (
     <AuthProvider>

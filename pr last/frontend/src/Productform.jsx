@@ -2,8 +2,12 @@ import { useState } from "react";
 
 const EMPTY = { name: "", description: "", duration_minutes: "", price: "", category_name: "" };
 
+// форма услуги
 function Productform({ service, categories, onSave, onCancel }) {
-  const [form, setForm] = useState(service || EMPTY);
+  const [form, setForm] = useState(service ? {
+    name: service.name, description: service.description, duration_minutes: service.duration_minutes,
+    price: service.price, category_name: service.category_name === "Нет категории" ? "" : service.category_name,
+  } : EMPTY);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
