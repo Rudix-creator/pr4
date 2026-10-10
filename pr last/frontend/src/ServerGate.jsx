@@ -4,14 +4,14 @@ import { checkServer } from "./api";
 // проверка сервера и базы данных
 const ping = (setOnline) => checkServer().then(() => setOnline(true)).catch(() => setOnline(false));
 
-// страница «Технические работы»: показывается, пока сервер или база данных недоступны
+// страница «Технические работы»
 function ServerGate({ children }) {
   // null — идёт первая проверка, true — сервер работает, false — технические работы
   const [online, setOnline] = useState(null);
 
   useEffect(() => {
     ping(setOnline);
-    // каждые 5 секунд проверяем сервер: упал — показываем страницу (в том числе в корзине и в админке), заработал — возвращаем сайт
+    // каждые 5 секунд проверяем сервер: упал — показываем страницу
     const timer = setInterval(() => ping(setOnline), 5000);
     // любой неудавшийся запрос к серверу сразу включает страницу технических работ
     const handleDown = () => setOnline(false);

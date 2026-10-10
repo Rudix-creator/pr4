@@ -12,7 +12,7 @@ async function request(endpoint, options = {}) {
     try {
         res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
     } catch (networkError) {
-        // сообщаем приложению, что сервер недоступен (покажется страница «Технические работы»)
+        // сообщаем приложению, что сервер недоступен 
         window.dispatchEvent(new Event('server-down'));
         throw new Error('Сервер недоступен. Убедитесь, что бэкенд запущен на порту 3001.');
     }
