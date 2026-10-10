@@ -10,3 +10,5 @@ schema.sql
 пользователи.txt
 
 server.js
+
+backend/

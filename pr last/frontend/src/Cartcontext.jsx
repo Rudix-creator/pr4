@@ -8,7 +8,7 @@ export const CartContext = createContext();
 export function CartProvider({ children }) {
     const { user } = useContext(AuthContext);
     const [items, setItems] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(!!user && user.role_name !== "admin");
     const [error, setError] = useState(null);
 
     // загрузка корзины

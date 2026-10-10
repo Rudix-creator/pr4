@@ -1,14 +1,17 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation, Link } from "react-router-dom";
 import { AuthContext } from "./Authcontext";
-import { getUserOrders, updateUser, changePassword } from "./api";
+import { getUserOrders, updateUser, changePassword, payOrder } from "./api";
+import { EMAIL_RE, PHONE_RE, isRealFullName, formatPhone, NAME_ERROR, PHONE_ERROR } from "./validate";
 
 // личный кабинет
 function Dashboard() {
   const { user, login } = useContext(AuthContext);
+  const location = useLocation();
+  const isAdmin = user?.role_name === "admin";
   const [orders, setOrders] = useState([]);
   const [profile, setProfile] = useState({
-    full_name: user?.full_name || "", email: user?.email || "", phone: user?.phone || "", address: user?.address || "",
+    full_name: user?.full_name || "", email: user?.email || "", phone: formatPhone(user?.phone), address: user?.address || "",
   });
   const [passwords, setPasswords] = useState({ old_password: "", new_password: "" });
   const [profileMsg, setProfileMsg] = useState(null);
@@ -16,25 +19,39 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // заказы нужны только обычному пользователю
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.role_name === "admin") return setLoading(false);
     getUserOrders(user.user_id)
       .then(setOrders)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+
+  // оплата заказа
+  const handlePay = async (orderId) => {
+    try {
+      setError(null);
+      await payOrder(orderId);
+      setOrders(await getUserOrders(user.user_id));
+    } catch (err) { setError(err.message); }
+  };
 
   // сохранение данных
   const saveProfile = async (e) => {
     e.preventDefault();
     if (!profile.full_name.trim() || !profile.email.trim() || !profile.phone.trim())
       return setProfileMsg({ text: "ФИО, email и телефон обязательны", error: true });
-    if (!/^\S+@\S+\.\S+$/.test(profile.email))
-      return setProfileMsg({ text: "Некорректный email", error: true });
+    if (profile.full_name.trim() !== user.full_name && !isRealFullName(profile.full_name))
+      return setProfileMsg({ text: NAME_ERROR, error: true });
+    if (!EMAIL_RE.test(profile.email)) return setProfileMsg({ text: "Некорректный email", error: true });
+    if (!PHONE_RE.test(profile.phone)) return setProfileMsg({ text: PHONE_ERROR, error: true });
     try {
-      login(await updateUser(user.user_id, profile));
+      const saved = await updateUser(user.user_id, profile);
+      login(saved);
+      setProfile({ ...profile, full_name: saved.full_name });
       setProfileMsg({ text: "Данные сохранены" });
     } catch (err) { setProfileMsg({ text: err.message, error: true }); }
   };
@@ -61,8 +78,10 @@ function Dashboard() {
           <h3>Личные данные</h3>
           <input placeholder="ФИО" value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} />
           <input type="email" placeholder="Email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} />
-          <input type="tel" placeholder="Телефон" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
-          <input placeholder="Адрес по умолчанию" value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} />
+          <input type="tel" inputMode="tel" maxLength={18} placeholder="+7 (900) 123-45-67" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })} />
+          {!isAdmin && (
+            <input placeholder="Адрес по умолчанию" value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} />
+          )}
           <Msg m={profileMsg} />
           <button className="btn">Сохранить</button>
         </form>
@@ -73,10 +92,11 @@ function Dashboard() {
           <input type="password" placeholder="Новый пароль" value={passwords.new_password} onChange={(e) => setPasswords({ ...passwords, new_password: e.target.value })} />
           <Msg m={passMsg} />
           <button className="btn">Изменить пароль</button>
+          <p className="muted">Забыли текущий пароль? <Link to="/forgot">Сбросить по почте</Link></p>
         </form>
       </div>
 
-      {user.role_name !== "admin" && (
+      {!isAdmin && (
         <>
           <h2>Мои заказы</h2>
           {loading && <p>Загрузка...</p>}
@@ -86,7 +106,10 @@ function Dashboard() {
             <div className="card" key={o.order_id}>
               <div className="row between">
                 <b>Заказ №{o.order_number} от {o.created_date}</b>
-                <span className="status">{o.status}</span>
+                <div className="row">
+                  <span className="status">{o.status}</span>
+                  {o.status === "Ожидает оплаты" && <button className="btn" onClick={() => handlePay(o.order_id)}>Оплатить</button>}
+                </div>
               </div>
               <p>{o.items}</p>
               <p>Адрес доставки: {o.delivery_address}</p>

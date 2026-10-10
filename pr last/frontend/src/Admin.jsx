@@ -1,15 +1,21 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { AuthContext } from "./Authcontext";
 import Productform from "./Productform";
+import { EMAIL_RE, PHONE_RE, isRealFullName, normalizeName, formatPhone, NAME_ERROR, PHONE_ERROR } from "./validate";
 import {
   getServices, createService, updateService, deleteService,
   getCategories, createCategory, updateCategory, deleteCategory,
-  getAllOrders, updateOrderStatus, deleteOrder,
-  getUsers, updateUser, deleteUser, registerUser,
+  getAllOrders, updateOrderStatus,
+  getUsers, registerUser,
 } from "./api";
 
-const STATUSES = ["Новый", "В работе", "Готов к выдаче", "Выполнен", "Отменён"];
+const STATUSES = ["Ожидает оплаты", "Оплачен", "В работе", "Готов к выдаче", "Выполнен", "Отменён"];
+// завершённые заказы менять нельзя
+const FINAL = ["Выполнен", "Отменён"];
+// оплаченный заказ не возвращается в «Ожидает оплаты», а неоплаченный сначала оплачивается (как на сервере)
+const blocked = (current, next) =>
+  next !== current && (next === "Ожидает оплаты" || (current === "Ожидает оплаты" && next !== "Оплачен" && next !== "Отменён"));
 const EMPTY_USER = { full_name: "", email: "", password: "", phone: "" };
 
 // вкладка услуг
@@ -145,10 +151,10 @@ function OrdersTab() {
           <p>{o.items}</p>
           <p>{o.full_name}, {o.phone}<br />Доставка: {o.delivery_address}, {o.delivery_date}</p>
           <div className="row">
-            <select value={o.status} onChange={(e) => run(() => updateOrderStatus(o.order_id, e.target.value))}>
-              {STATUSES.map((s) => <option key={s}>{s}</option>)}
+            <select value={o.status} disabled={FINAL.includes(o.status)} onChange={(e) => run(() => updateOrderStatus(o.order_id, e.target.value))}>
+              {STATUSES.map((s) => <option key={s} disabled={blocked(o.status, s)}>{s}</option>)}
             </select>
-            <button className="btn btn-danger" onClick={() => run(() => deleteOrder(o.order_id))}>Удалить</button>
+            {FINAL.includes(o.status) && <span className="muted">Заказ завершён, статус изменить нельзя</span>}
           </div>
         </div>
       ))}
@@ -156,10 +162,9 @@ function OrdersTab() {
   );
 }
 
-// вкладка пользователей
+// вкладка пользователей (только просмотр и добавление)
 function UsersTab() {
   const [users, setUsers] = useState([]);
-  const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState(EMPTY_USER);
   const [loading, setLoading] = useState(true);
@@ -173,33 +178,17 @@ function UsersTab() {
   };
   useEffect(loadData, []);
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!editing.full_name.trim() || !editing.email.trim() || !editing.phone.trim())
-      return setError("ФИО, email и телефон обязательны");
-    if (!/^\S+@\S+\.\S+$/.test(editing.email)) return setError("Некорректный email");
-    try {
-      setError(null);
-      await updateUser(editing.user_id, editing);
-      setEditing(null);
-      loadData();
-    } catch (err) { setError(err.message); }
-  };
-
-  const handleDelete = async (u) => {
-    try { setError(null); await deleteUser(u.user_id); loadData(); } catch (err) { setError(err.message); }
-  };
-
-  const handleChange = (e) => setEditing({ ...editing, [e.target.name]: e.target.value });
-
+  // создание пользователя
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!newUser.full_name.trim() || !newUser.email.trim() || !newUser.password || !newUser.phone.trim())
       return setError("Заполните все поля");
-    if (!/^\S+@\S+\.\S+$/.test(newUser.email)) return setError("Некорректный email");
+    if (!isRealFullName(newUser.full_name)) return setError(NAME_ERROR);
+    if (!EMAIL_RE.test(newUser.email)) return setError("Некорректный email");
+    if (!PHONE_RE.test(newUser.phone)) return setError(PHONE_ERROR);
     try {
       setError(null);
-      await registerUser(newUser);
+      await registerUser({ ...newUser, full_name: normalizeName(newUser.full_name) });
       setNewUser(EMPTY_USER);
       setCreating(false);
       loadData();
@@ -211,43 +200,26 @@ function UsersTab() {
   return (
     <>
       {error && <p className="error">{error}</p>}
-      {!editing && !creating && (
+      {!creating && (
         <p><button className="btn" onClick={() => setCreating(true)}>Добавить пользователя</button></p>
       )}
       {creating && (
         <form className="card form" onSubmit={handleCreate} noValidate>
           <h3>Новый пользователь</h3>
-          <input placeholder="ФИО" value={newUser.full_name} onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })} />
+          <input placeholder="Имя и фамилия" value={newUser.full_name} onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })} />
           <input type="email" placeholder="Email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
           <input type="password" placeholder="Пароль" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} />
-          <input type="tel" placeholder="Телефон" value={newUser.phone} onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })} />
+          <input type="tel" inputMode="tel" maxLength={18} placeholder="+7 (900) 123-45-67" value={newUser.phone} onChange={(e) => setNewUser({ ...newUser, phone: formatPhone(e.target.value) })} />
           <div className="row">
             <button className="btn">Добавить</button>
             <button type="button" className="btn outline" onClick={() => { setCreating(false); setError(null); }}>Отмена</button>
           </div>
         </form>
       )}
-      {editing && (
-        <form className="card form" onSubmit={handleSave} noValidate>
-          <h3>Изменить пользователя</h3>
-          <input name="full_name" placeholder="ФИО" value={editing.full_name} onChange={handleChange} />
-          <input name="email" type="email" placeholder="Email" value={editing.email} onChange={handleChange} />
-          <input name="phone" type="tel" placeholder="Телефон" value={editing.phone} onChange={handleChange} />
-          <input name="address" placeholder="Адрес" value={editing.address || ""} onChange={handleChange} />
-          <div className="row">
-            <button className="btn">Сохранить</button>
-            <button type="button" className="btn outline" onClick={() => setEditing(null)}>Отмена</button>
-          </div>
-        </form>
-      )}
       {users.map((u) => (
-        <div className="card row between" key={u.user_id}>
-          <div className="grow">
-            <b>{u.full_name}</b> <span className="tag">{u.role_name}</span>
-            <div>{u.email} · {u.phone}{u.address ? ` · ${u.address}` : ""}</div>
-          </div>
-          <button className="btn outline" onClick={() => setEditing(u)}>Изменить</button>
-          {u.role_name !== "admin" && <button className="btn btn-danger" onClick={() => handleDelete(u)}>Удалить</button>}
+        <div className="card" key={u.user_id}>
+          <div><b>{u.full_name}</b> <span className="tag">{u.role_name}</span></div>
+          <div>{u.email} · {u.phone}</div>
         </div>
       ))}
     </>
@@ -259,7 +231,14 @@ function Admin() {
   const { user } = useContext(AuthContext);
   const [tab, setTab] = useState("services");
 
-  if (user?.role_name !== "admin") return <Navigate to="/" replace />;
+  // доступ только для администратора
+  if (user?.role_name !== "admin") return (
+    <div className="card">
+      <h1>Доступ запрещён</h1>
+      <p>У вас нет прав для просмотра этой страницы.</p>
+      <Link className="btn" to="/">На главную</Link>
+    </div>
+  );
 
   const tabs = { services: "Услуги", categories: "Категории", orders: "Заказы", users: "Пользователи" };
 

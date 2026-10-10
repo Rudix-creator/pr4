@@ -1,13 +1,17 @@
 import { useContext, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { AuthContext } from "./Authcontext";
 import { CartContext } from "./Cartcontext";
 import { createOrder } from "./api";
+
+// максимум штук одной услуги (так же на сервере)
+const MAX_QTY = 10;
 
 // корзина и оформление заказа
 function Cart() {
   const { user } = useContext(AuthContext);
   const { items, loading, error: cartError, total, changeQuantity, removeFromCart, reloadCart } = useContext(CartContext);
+  const location = useLocation();
   const [address, setAddress] = useState(user?.address || "");
   const [date, setDate] = useState("");
   const [saving, setSaving] = useState(false);
@@ -16,7 +20,8 @@ function Cart() {
 
   const today = new Date().toLocaleDateString("sv-SE");
 
-  if (!user || user.role_name === "admin") return <Navigate to="/login" replace />;
+  // гостя отправляем на вход и после входа возвращаем в корзину
+  if (!user || user.role_name === "admin") return <Navigate to="/login" state={{ from: location.pathname }} replace />;
 
   // оформление заказа
   const handleOrder = async (e) => {
@@ -37,7 +42,7 @@ function Cart() {
 
   if (done) return (
     <div className="card">
-      <h2>Заказ оформлен </h2>
+      <h2>Заказ оформлен</h2>
       <p>Статус заказа можно смотреть в <Link to="/dashboard">личном кабинете</Link>.</p>
     </div>
   );
@@ -54,17 +59,18 @@ function Cart() {
             <div className="card row between" key={i.service_id}>
               <div className="grow">
                 <b>{i.name}</b>
-                <div> {i.duration_minutes} мин · {i.price} ₽</div>
+                <div>{i.duration_minutes} мин · {i.price} ₽</div>
               </div>
               <div className="row">
                 <button className="btn outline" disabled={i.quantity <= 1} onClick={() => changeQuantity(i.service_id, i.quantity - 1)}>−</button>
                 <span>{i.quantity}</span>
-                <button className="btn outline" onClick={() => changeQuantity(i.service_id, i.quantity + 1)}>+</button>
+                <button className="btn outline" disabled={i.quantity >= MAX_QTY} onClick={() => changeQuantity(i.service_id, i.quantity + 1)}>+</button>
               </div>
               <b>{i.price * i.quantity} рублей</b>
               <button className="btn btn-danger" onClick={() => removeFromCart(i.service_id)}>Удалить</button>
             </div>
           ))}
+          <p className="muted">Не больше {MAX_QTY} шт. одной услуги.</p>
 
           <h2>Итого: {total} рублей</h2>
 

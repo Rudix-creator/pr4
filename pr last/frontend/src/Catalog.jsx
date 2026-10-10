@@ -16,6 +16,8 @@ function Catalog() {
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [query, setQuery] = useState("");
+  const [focus, setFocus] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState("");
@@ -29,15 +31,20 @@ function Catalog() {
 
   // добавление в корзину
   const handleAdd = async (service) => {
+    setMessage("");
     if (!user) return navigate("/login");
     if (await addToCart(service.service_id)) setMessage(`«${service.name}» добавлена в корзину`);
   };
 
-  // фильтры
+  // поиск и фильтры работают сразу при вводе
+  const q = query.trim().toLowerCase();
   const filtered = services.filter((s) =>
     (!category || s.category_name === category) &&
-    (!maxPrice || s.price <= Number(maxPrice))
+    (!maxPrice || s.price <= Number(maxPrice)) &&
+    (!q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q))
   );
+  // подсказки под строкой поиска
+  const suggestions = q ? services.filter((s) => s.name.toLowerCase().includes(q)).slice(0, 6) : [];
 
   if (loading) return <h2>Загрузка...</h2>;
 
@@ -46,6 +53,26 @@ function Catalog() {
       <h1>Услуги по ремонту техники</h1>
 
       <div className="filters">
+        <div className="search">
+          <input
+            type="search"
+            placeholder="Поиск услуги"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setFocus(true)}
+            onBlur={() => setFocus(false)}
+          />
+          {focus && suggestions.length > 0 && (
+            <div className="suggest">
+              {suggestions.map((s) => (
+                <div key={s.service_id} className="suggest-item" onMouseDown={() => navigate(`/service/${s.service_id}`)}>
+                  <span>{s.name}</span>
+                  <b>{s.price} ₽</b>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <select value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="">Все категории</option>
           {categories.map((c) => <option key={c.category_id}>{c.category_name}</option>)}

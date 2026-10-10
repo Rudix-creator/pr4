@@ -5,6 +5,10 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ТехноФикс — ремонт техники</title>
+    <script>
+      // тема применяется до отрисовки, чтобы не было мигания
+      try { document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

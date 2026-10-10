@@ -33,11 +33,12 @@ const del = (endpoint) => request(endpoint, { method: 'DELETE' });
 // авторизация
 export const loginUser = (data) => post('/auth/login', data);
 export const registerUser = (data) => post('/auth/register', data);
+export const forgotPassword = (email) => post('/auth/forgot', { email });
+export const resetPassword = (data) => post('/auth/reset', data);
 
 // пользователи
 export const getUsers = () => request('/users');
 export const updateUser = (id, data) => put(`/users/${id}`, data);
-export const deleteUser = (id) => del(`/users/${id}`);
 export const changePassword = (id, data) => put(`/users/${id}/password`, data);
 export const getUserOrders = (id) => request(`/users/${id}/orders`);
 
@@ -68,6 +69,6 @@ export const removeFromCart = (userId, serviceId) => del(`/cart/${userId}/${serv
 
 // заказы
 export const createOrder = (data) => post('/orders', data);
+export const payOrder = (id) => put(`/orders/${id}/pay`, {});
 export const getAllOrders = () => request('/orders');
 export const updateOrderStatus = (id, status) => put(`/orders/${id}/status`, { status });
-export const deleteOrder = (id) => del(`/orders/${id}`);

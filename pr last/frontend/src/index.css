@@ -3,9 +3,10 @@
 body {
   margin: 0;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  background: #f4f6fa;
-  color: #1f2937;
+  background: var(--bg);
+  color: var(--text);
 }
 
-a { color: #2563eb; text-decoration: none; }
+a { color: var(--link); text-decoration: none; }
 a:hover { text-decoration: underline; }
+.btn, .btn:hover { text-decoration: none; }

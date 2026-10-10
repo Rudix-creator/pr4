@@ -4,6 +4,9 @@ import { getServiceById, getReviews, createReview, updateReview, deleteReview } 
 import { AuthContext } from "./Authcontext";
 import { CartContext } from "./Cartcontext";
 
+// текст удалённого отзыва (так же на сервере)
+const REMOVED = "Отзыв удалён администратором за нарушение политики";
+
 // страница услуги и отзывы
 function ServiceDetail() {
   const { id } = useParams();
@@ -29,14 +32,18 @@ function ServiceDetail() {
 
   useEffect(loadData, [id]);
 
+  // у пользователя уже есть отзыв на эту услугу
+  const hasReview = reviews.some((r) => r.mine);
+
   // новый отзыв
   const handleReview = async (e) => {
     e.preventDefault();
-    if (!comment.trim()) return setError("Напишите комментарий к отзыву");
+    const text = comment.trim();
+    if (text.length < 3 || !/[A-Za-zА-Яа-яЁё]/.test(text)) return setError("Напишите осмысленный комментарий (не короче 3 символов)");
     try {
       setSaving(true);
       setError(null);
-      await createReview({ service_id: service.service_id, rating, comment });
+      await createReview({ service_id: service.service_id, rating, comment: text });
       setComment("");
       setRating(5);
       loadData();
@@ -44,18 +51,18 @@ function ServiceDetail() {
     finally { setSaving(false); }
   };
 
-  // изменение отзыва
+  // изменение отзыва (админ)
   const handleEditReview = async (r) => {
     const newComment = prompt("Новый комментарий:", r.comment);
     if (!newComment || !newComment.trim()) return;
     const newRating = Number(prompt("Новая оценка (от 1 до 5):", r.rating));
     if (!Number.isInteger(newRating) || newRating < 1 || newRating > 5) return setError("Оценка должна быть целым числом от 1 до 5");
-    try { await updateReview(r.review_id, { rating: newRating, comment: newComment }); loadData(); } catch (err) { setError(err.message); }
+    try { setError(null); await updateReview(r.review_id, { rating: newRating, comment: newComment }); loadData(); } catch (err) { setError(err.message); }
   };
 
-  // удаление отзыва
+  // удаление отзыва (админ)
   const handleDeleteReview = async (reviewId) => {
-    try { await deleteReview(reviewId); loadData(); } catch (err) { setError(err.message); }
+    try { setError(null); await deleteReview(reviewId); loadData(); } catch (err) { setError(err.message); }
   };
 
   const handleAdd = async () => {
@@ -88,7 +95,15 @@ function ServiceDetail() {
 
       <h2>Отзывы ({reviews.length})</h2>
       {reviews.length === 0 && <p>Отзывов пока нет.</p>}
-      {reviews.map((r) => (
+      {reviews.map((r) => r.comment === REMOVED ? (
+        <div className="card" key={r.review_id}>
+          <div className="row between">
+            <b>{r.full_name}</b>
+            <span>{r.created_date}</span>
+          </div>
+          <p className="muted">{REMOVED}</p>
+        </div>
+      ) : (
         <div className="card" key={r.review_id}>
           <div className="row between">
             <b>{r.full_name}</b>
@@ -105,17 +120,17 @@ function ServiceDetail() {
         </div>
       ))}
 
-      {user ? (
+      {!user && <p><Link to="/login">Войдите</Link>, чтобы оставить отзыв.</p>}
+      {user && hasReview && <p className="muted">Вы уже оставили отзыв на эту услугу.</p>}
+      {user && !hasReview && (
         <form className="card form" onSubmit={handleReview} noValidate>
           <h3>Оставить отзыв</h3>
           <select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
             {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>Оценка: {n} из 5</option>)}
           </select>
-          <textarea placeholder="Комментарий" value={comment} onChange={(e) => setComment(e.target.value)} />
+          <textarea placeholder="Комментарий" maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} />
           <button className="btn" disabled={saving}>{saving ? "Отправка..." : "Отправить"}</button>
         </form>
-      ) : (
-        <p><Link to="/login">Войдите</Link>, чтобы оставить отзыв.</p>
       )}
     </>
   );

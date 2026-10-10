@@ -2,11 +2,13 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./Authcontext";
 import { CartContext } from "./Cartcontext";
+import { ThemeContext } from "./Themecontext";
 
 // навигация
 function Navbar() {
   const { user, isAuthenticated, logout } = useContext(AuthContext);
   const { itemCount } = useContext(CartContext);
+  const { theme, toggleTheme } = useContext(ThemeContext);
   const navigate = useNavigate();
   const isAdmin = user?.role_name === "admin";
 
@@ -19,6 +21,9 @@ function Navbar() {
       {isAuthenticated && <NavLink to="/dashboard">Кабинет</NavLink>}
 
       <div className="right">
+        <button className="btn theme-btn" onClick={toggleTheme}>
+          {theme === "light" ? "Тёмная тема" : "Светлая тема"}
+        </button>
         {isAuthenticated ? (
           <>
             <span>{user.full_name}</span>

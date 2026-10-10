@@ -18,7 +18,7 @@ function Productform({ service, categories, onSave, onCancel }) {
     if (!form.name.trim() || !form.description.trim() || !form.category_name)
       return setError("Заполните название, описание и категорию");
     if (!(Number(form.duration_minutes) > 0)) return setError("Длительность должна быть больше 0");
-    if (form.price === "" || Number(form.price) < 0) return setError("Укажите корректную цену");
+    if (!(Number(form.price) > 0)) return setError("Цена должна быть больше 0");
     try {
       setSaving(true);
       setError(null);
@@ -38,7 +38,7 @@ function Productform({ service, categories, onSave, onCancel }) {
         {categories.map((c) => <option key={c.category_id}>{c.category_name}</option>)}
       </select>
       <input name="duration_minutes" type="number" placeholder="Длительность, мин" value={form.duration_minutes} onChange={handleChange} />
-      <input name="price" type="number" placeholder="Цена, рублей" value={form.price} onChange={handleChange} />
+      <input name="price" type="number" min="1" placeholder="Цена, рублей" value={form.price} onChange={handleChange} />
       {error && <p className="error">{error}</p>}
       <div className="row">
         <button className="btn" disabled={saving}>{saving ? "Сохранение..." : service ? "Сохранить" : "Добавить"}</button>
