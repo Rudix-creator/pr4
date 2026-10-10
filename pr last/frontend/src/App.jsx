@@ -1,6 +1,7 @@
 import './App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './Themecontext'
+import ServerGate from './ServerGate'
 import { AuthProvider } from './Authcontext'
 import { CartProvider } from './Cartcontext'
 import Navbar from './Navbar'
@@ -18,6 +19,7 @@ import NotFound from './NotFound'
 function App() {
   return (
     <ThemeProvider>
+    <ServerGate>
     <AuthProvider>
       <CartProvider>
         <BrowserRouter>
@@ -38,6 +40,7 @@ function App() {
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>
+    </ServerGate>
     </ThemeProvider>
   )
 }

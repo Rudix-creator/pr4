@@ -11,6 +11,8 @@ import {
 } from "./api";
 
 const STATUSES = ["Ожидает оплаты", "Оплачен", "В работе", "Готов к выдаче", "Выполнен", "Отменён"];
+// нейтральная категория (как на сервере): её нельзя удалить и переименовать
+const NO_CATEGORY = "Без категории";
 // завершённые заказы менять нельзя
 const FINAL = ["Выполнен", "Отменён"];
 // оплаченный заказ не возвращается в «Ожидает оплаты», а неоплаченный сначала оплачивается (как на сервере)
@@ -96,6 +98,12 @@ function CategoriesTab() {
     if (newName && newName.trim()) run(() => updateCategory(c.category_id, { category_name: newName }));
   };
 
+  // удаление категории: её услуги переезжают в «Без категории»
+  const handleDelete = (c) => {
+    if (confirm(`Удалить категорию «${c.category_name}»? Её услуги переместятся в «${NO_CATEGORY}».`))
+      run(() => deleteCategory(c.category_id));
+  };
+
   if (loading) return <p>Загрузка...</p>;
 
   return (
@@ -108,10 +116,14 @@ function CategoriesTab() {
       {categories.map((c) => (
         <div className="card row between" key={c.category_id}>
           <b>{c.category_name}</b>
-          <div className="row">
-            <button className="btn outline" onClick={() => handleRename(c)}>Переименовать</button>
-            <button className="btn btn-danger" onClick={() => run(() => deleteCategory(c.category_id))}>Удалить</button>
-          </div>
+          {c.category_name === NO_CATEGORY ? (
+            <span className="muted">Системная категория: сюда попадают услуги удалённых категорий</span>
+          ) : (
+            <div className="row">
+              <button className="btn outline" onClick={() => handleRename(c)}>Переименовать</button>
+              <button className="btn btn-danger" onClick={() => handleDelete(c)}>Удалить</button>
+            </div>
+          )}
         </div>
       ))}
     </>

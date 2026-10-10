@@ -12,6 +12,8 @@ async function request(endpoint, options = {}) {
     try {
         res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
     } catch (networkError) {
+        // сообщаем приложению, что сервер недоступен (покажется страница «Технические работы»)
+        window.dispatchEvent(new Event('server-down'));
         throw new Error('Сервер недоступен. Убедитесь, что бэкенд запущен на порту 3001.');
     }
 
@@ -29,6 +31,9 @@ async function request(endpoint, options = {}) {
 const post = (endpoint, body) => request(endpoint, { method: 'POST', body: JSON.stringify(body) });
 const put = (endpoint, body) => request(endpoint, { method: 'PUT', body: JSON.stringify(body) });
 const del = (endpoint) => request(endpoint, { method: 'DELETE' });
+
+// проверка сервера
+export const checkServer = () => request('/health');
 
 // авторизация
 export const loginUser = (data) => post('/auth/login', data);
@@ -69,6 +74,7 @@ export const removeFromCart = (userId, serviceId) => del(`/cart/${userId}/${serv
 
 // заказы
 export const createOrder = (data) => post('/orders', data);
+export const getAvailability = (date) => request(`/orders/availability?date=${date}`);
 export const payOrder = (id) => put(`/orders/${id}/pay`, {});
 export const getAllOrders = () => request('/orders');
 export const updateOrderStatus = (id, status) => put(`/orders/${id}/status`, { status });

@@ -1,8 +1,8 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { AuthContext } from "./Authcontext";
 import { CartContext } from "./Cartcontext";
-import { createOrder } from "./api";
+import { createOrder, getAvailability } from "./api";
 
 // максимум штук одной услуги (так же на сервере)
 const MAX_QTY = 10;
@@ -17,11 +17,26 @@ function Cart() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
+  const [availability, setAvailability] = useState(null);
+
+  // сколько услуг ещё можно заказать на выбранную дату
+  useEffect(() => {
+    if (!date) { setAvailability(null); return; }
+    let cancelled = false;
+    getAvailability(date)
+      .then((data) => { if (!cancelled) setAvailability(data); })
+      .catch(() => { if (!cancelled) setAvailability(null); });
+    return () => { cancelled = true; };
+  }, [date]);
 
   const today = new Date().toLocaleDateString("sv-SE");
 
   // гостя отправляем на вход и после входа возвращаем в корзину
   if (!user || user.role_name === "admin") return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+
+  // сколько услуг в корзине и хватает ли на выбранную дату мест
+  const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  const dayFull = availability !== null && cartCount > availability.free;
 
   // оформление заказа
   const handleOrder = async (e) => {
@@ -78,7 +93,16 @@ function Cart() {
             <h3>Оформление заказа</h3>
             <input placeholder="Адрес доставки" value={address} onChange={(e) => setAddress(e.target.value)} />
             <input type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />
-            <button className="btn" disabled={saving}>{saving ? "Оформляем..." : "Оформить заказ"}</button>
+            {availability && (
+              <p className={dayFull ? "error" : "muted"}>
+                {availability.free === 0
+                  ? "На эту дату все сотрудники заняты, выберите другой день."
+                  : dayFull
+                    ? `На эту дату свободно только ${availability.free} шт., а в корзине ${cartCount}. Уменьшите количество или выберите другой день.`
+                    : `На эту дату свободно: ${availability.free} из ${availability.limit} шт.`}
+              </p>
+            )}
+            <button className="btn" disabled={saving || dayFull}>{saving ? "Оформляем..." : "Оформить заказ"}</button>
           </form>
         </>
       )}
