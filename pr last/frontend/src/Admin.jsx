@@ -8,6 +8,7 @@ import {
   getCategories, createCategory, updateCategory, deleteCategory,
   getAllOrders, updateOrderStatus,
   getUsers, registerUser,
+  getCoupons, createCoupon, updateCoupon, deleteCoupon,
 } from "./api";
 
 const STATUSES = ["Ожидает оплаты", "Оплачен", "В работе", "Готов к выдаче", "Выполнен", "Отменён"];
@@ -130,6 +131,76 @@ function CategoriesTab() {
   );
 }
 
+// вкладка купонов: создание, смена процента, отключение и удаление
+function CouponsTab() {
+  const [coupons, setCoupons] = useState([]);
+  const [form, setForm] = useState({ code: "", discount_percent: "" });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadData = () => {
+    getCoupons()
+      .then(setCoupons)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  };
+  useEffect(loadData, []);
+
+  const run = async (action) => {
+    try { setError(null); await action(); loadData(); } catch (err) { setError(err.message); }
+  };
+
+  const handleAdd = (e) => {
+    e.preventDefault();
+    if (!/^[A-Za-zА-Яа-яЁё0-9_-]{3,20}$/.test(form.code.trim())) return setError("Код купона: 3-20 символов (буквы, цифры, «-» и «_»)");
+    const percent = Number(form.discount_percent);
+    if (!Number.isInteger(percent) || percent < 1 || percent > 90) return setError("Скидка должна быть целым числом от 1 до 90 %");
+    run(async () => { await createCoupon({ code: form.code.trim(), discount_percent: percent }); setForm({ code: "", discount_percent: "" }); });
+  };
+
+  const handlePercent = (c) => {
+    const answer = prompt("Новый процент скидки (1-90):", c.discount_percent);
+    if (answer === null) return;
+    const percent = Number(answer);
+    if (!Number.isInteger(percent) || percent < 1 || percent > 90) return setError("Скидка должна быть целым числом от 1 до 90 %");
+    run(() => updateCoupon(c.coupon_id, { code: c.code, discount_percent: percent, active: c.active }));
+  };
+
+  const toggle = (c) => run(() => updateCoupon(c.coupon_id, { code: c.code, discount_percent: c.discount_percent, active: !c.active }));
+
+  const handleDelete = (c) => {
+    if (confirm(`Удалить купон ${c.code}?`)) run(() => deleteCoupon(c.coupon_id));
+  };
+
+  if (loading) return <p>Загрузка...</p>;
+
+  return (
+    <>
+      <p className="muted">Каждый купон можно использовать один раз на пользователя. Скидка на первый заказ (10%) выдаётся новым пользователям автоматически и действует только на первый заказ.</p>
+      <form className="card row" onSubmit={handleAdd} noValidate>
+        <input className="grow" placeholder="Код купона (например, SALE10)" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+        <input type="number" min="1" max="90" placeholder="Скидка, %" value={form.discount_percent} onChange={(e) => setForm({ ...form, discount_percent: e.target.value })} />
+        <button className="btn">Добавить</button>
+      </form>
+      {error && <p className="error">{error}</p>}
+      {coupons.length === 0 && <p>Купонов пока нет.</p>}
+      {coupons.map((c) => (
+        <div className="card row between" key={c.coupon_id}>
+          <div>
+            <b>{c.code}</b> · −{c.discount_percent}% · использован {c.uses} раз
+            {!c.active && <span className="status"> отключён</span>}
+          </div>
+          <div className="row">
+            <button className="btn outline" onClick={() => handlePercent(c)}>Изменить %</button>
+            <button className="btn outline" onClick={() => toggle(c)}>{c.active ? "Отключить" : "Включить"}</button>
+            <button className="btn btn-danger" onClick={() => handleDelete(c)}>Удалить</button>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 // вкладка заказов
 function OrdersTab() {
   const [orders, setOrders] = useState([]);
@@ -158,7 +229,7 @@ function OrdersTab() {
         <div className="card" key={o.order_id}>
           <div className="row between">
             <b>Заказ №{o.order_number} от {o.created_date}</b>
-            <b>{o.total} рублей</b>
+            <b>{o.total} рублей{o.discount_percent > 0 && ` (${o.discount_note || "скидка"} −${o.discount_percent}%)`}</b>
           </div>
           <p>{o.items}</p>
           <p>{o.full_name}, {o.phone}<br />Доставка: {o.delivery_address}, {o.delivery_date}</p>
@@ -252,7 +323,7 @@ function Admin() {
     </div>
   );
 
-  const tabs = { services: "Услуги", categories: "Категории", orders: "Заказы", users: "Пользователи" };
+  const tabs = { services: "Услуги", categories: "Категории", orders: "Заказы", coupons: "Купоны", users: "Пользователи" };
 
   return (
     <>
@@ -265,6 +336,7 @@ function Admin() {
       {tab === "services" && <ServicesTab />}
       {tab === "categories" && <CategoriesTab />}
       {tab === "orders" && <OrdersTab />}
+      {tab === "coupons" && <CouponsTab />}
       {tab === "users" && <UsersTab />}
     </>
   );

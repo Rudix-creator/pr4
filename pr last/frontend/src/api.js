@@ -74,6 +74,14 @@ export const removeFromCart = (userId, serviceId) => del(`/cart/${userId}/${serv
 
 // заказы
 export const createOrder = (data) => post('/orders', data);
+export const getWelcomeDiscount = (userId) => request(`/users/${userId}/welcome-discount`);
+
+// купоны
+export const checkCoupon = (code) => post('/coupons/check', { code });
+export const getCoupons = () => request('/coupons');
+export const createCoupon = (data) => post('/coupons', data);
+export const updateCoupon = (id, data) => put(`/coupons/${id}`, data);
+export const deleteCoupon = (id) => del(`/coupons/${id}`);
 export const getAvailability = (date) => request(`/orders/availability?date=${date}`);
 export const payOrder = (id) => put(`/orders/${id}/pay`, {});
 export const getAllOrders = () => request('/orders');

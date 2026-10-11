@@ -114,6 +114,7 @@ function Dashboard() {
               <p>{o.items}</p>
               <p>Адрес доставки: {o.delivery_address}</p>
               <p>Дата доставки: {o.delivery_date}</p>
+              {o.discount_percent > 0 && <p className="ok">{o.discount_note || "Скидка"}: −{o.discount_percent}%</p>}
               <b>{o.total} рублей</b>
             </div>
           ))}
